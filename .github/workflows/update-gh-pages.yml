@@ -1,0 +1,48 @@
+name: Update gh-pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Ref to build from"
+        required: false
+        default: ""
+
+jobs:
+  update-gh-pages:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          repository: Bing-su/cactbot
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.ref }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: "package-lock.json"
+
+      - name: Build
+        run: |
+          npm run coverage-report
+          npm run build-gh-pages
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ github.token }}
+          publish_dir: ./dist
+          force_orphan: true
+          user_name: "github-actions"
+          user_email: "github-actions@github.com"
+          commit_message: "gh-pages build: ${{ github.event.inputs.ref || github.sha }}"
+          enable_jekyll: true # Don't commit the .nojekyll file
